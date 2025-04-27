@@ -200,7 +200,9 @@ async def eth_listener():
 
         producer.flush()
 
-# --- Kafka Consumer Listener ---
+latest_message = {}
+
+# --- 修改 Kafka Consumer Listener ---
 async def kafka_listener():
     loop = asyncio.get_running_loop()
 
@@ -219,6 +221,20 @@ async def kafka_listener():
         )
         print("🚀 Kafka Consumer Started...")
         for msg in consumer:
+            parsed_message = {
+                "topic": msg.topic,
+                "data": msg.value,
+                "timestamp": time.time()
+            }
             print(f"🔔 [Kafka Message] Topic: {msg.topic}, Data: {msg.value}")
 
+            # --- 新增：保存最新一条消息 ---
+            global latest_message
+            latest_message = parsed_message
+
     await loop.run_in_executor(None, consume)
+
+# --- 新增 HTTP接口：外部可以访问拿到最新Kafka消费的数据 ---
+@app.get("/latest_message")
+async def get_latest_message():
+    return latest_message
